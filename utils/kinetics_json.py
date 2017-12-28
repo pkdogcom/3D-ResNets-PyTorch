@@ -1,8 +1,8 @@
 from __future__ import print_function, division
-import os
 import sys
 import json
 import pandas as pd
+
 
 def convert_csv_to_dict(csv_path, subset):
     data = pd.read_csv(csv_path)
@@ -30,31 +30,36 @@ def convert_csv_to_dict(csv_path, subset):
 
     return database
 
-def load_labels(train_csv_path):
-    data = pd.read_csv(train_csv_path)
+
+def load_labels(csv_path):
+    data = pd.read_csv(csv_path)
     return data['label'].unique().tolist()
+
 
 def convert_kinetics_csv_to_activitynet_json(train_csv_path, val_csv_path, test_csv_path, dst_json_path):
     labels = load_labels(train_csv_path)
-    train_database = convert_csv_to_dict(train_csv_path, 'training')
-    val_database = convert_csv_to_dict(val_csv_path, 'validation')
-    test_database = convert_csv_to_dict(test_csv_path, 'testing')
 
-    dst_data = {}
-    dst_data['labels'] = labels
-    dst_data['database'] = {}
-    dst_data['database'].update(train_database)
-    dst_data['database'].update(val_database)
-    dst_data['database'].update(test_database)
+    dst_data = {'labels': labels, 'database': {}}
+
+    if train_csv_path is not None:
+        train_database = convert_csv_to_dict(train_csv_path, 'training')
+        dst_data['database'].update(train_database)
+    if val_csv_path is not None:
+        val_database = convert_csv_to_dict(val_csv_path, 'validation')
+        dst_data['database'].update(val_database)
+    if test_csv_path is not None:
+        test_database = convert_csv_to_dict(test_csv_path, 'testing')
+        dst_data['database'].update(test_database)
 
     with open(dst_json_path, 'w') as dst_file:
         json.dump(dst_data, dst_file)
 
-if __name__=="__main__":
-  train_csv_path = sys.argv[1]
-  val_csv_path = sys.argv[2]
-  test_csv_path = sys.argv[3]
-  dst_json_path = sys.argv[4]
 
-  convert_kinetics_csv_to_activitynet_json(
-    train_csv_path, val_csv_path, test_csv_path, dst_json_path)
+if __name__ == "__main__":
+    train_csv_path = sys.argv[1]
+    val_csv_path = sys.argv[2]
+    test_csv_path = sys.argv[3]
+    dst_json_path = sys.argv[4]
+
+    convert_kinetics_csv_to_activitynet_json(
+        train_csv_path, val_csv_path, test_csv_path, dst_json_path)

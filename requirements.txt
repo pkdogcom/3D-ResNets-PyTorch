@@ -1,0 +1,4 @@
+pillow-simd
+numpy
+torch
+pandas

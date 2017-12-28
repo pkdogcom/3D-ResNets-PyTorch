@@ -123,7 +123,7 @@ def make_dataset(root_path, annotation_path, subset,
             dataset.append(sample)
         else:
             if n_samples_for_each_video > 1:
-                step = max(1, math.ceil((n_frames - 1 - sample_duration) / (n_samples_for_each_video - 1)))
+                step = int(max(1, math.ceil((n_frames - 1 - sample_duration) / (n_samples_for_each_video - 1))))
             else:
                 step = sample_duration
             for j in range(1, n_frames, step):
@@ -185,6 +185,7 @@ class Kinetics(data.Dataset):
         if self.target_transform is not None:
             target = self.target_transform(target)
 
+        # print 'Got data {}'.format(index)
         return clip, target
 
     def __len__(self):

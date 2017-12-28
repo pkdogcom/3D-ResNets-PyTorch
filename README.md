@@ -122,10 +122,18 @@ python utils/video_jpg_kinetics.py avi_video_directory jpg_video_directory
 python utils/n_frames_kinetics.py jpg_video_directory
 ```
 * Generate annotation file in json format similar to ActivityNet using ```utils/kinetics_json.py```
-  * The CSV files (kinetics_{train, val, test}.csv) are included in the crawler.
+  * The CSV files (kinetics_{train, val, test}.csv) can be found in the ```datasets/kinetics``` folder.
 ```
 python utils/kinetics_json.py train_csv_path val_csv_path test_csv_path dst_json_path
 ```
+
+### Mini-Kinetics-200
+* If the full Kinetics dataset has been downloaded and prepared as above, you only need to generate a separate annotation file using ```utils/minikinetics_json.py```
+  * Besides the CSV files of full kinetics dataset, you also need to pass in the youtube_id list files for train and val set, which can be found also in ```datasets/kinetics``` folder.
+```
+python utils/minikinetics_json.py train_csv_path mini_train_list_path val_csv_path mini_val_list_path dst_json_path
+```
+
 
 ### UCF-101
 * Download videos and train/test splits [here](http://crcv.ucf.edu/data/UCF101.php).

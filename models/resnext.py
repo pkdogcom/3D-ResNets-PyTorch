@@ -69,7 +69,8 @@ class ResNeXtBottleneck(nn.Module):
 
 class ResNeXt(nn.Module):
 
-    def __init__(self, block, layers, sample_size, sample_duration, shortcut_type='B', cardinality=32, num_classes=400):
+    def __init__(self, block, layers, sample_size, sample_duration, shortcut_type='B', cardinality=32, num_classes=400,
+                 separable_conv=False):
         self.inplanes = 64
         super(ResNeXt, self).__init__()
         self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2),
@@ -134,6 +135,7 @@ class ResNeXt(nn.Module):
 
         return x
 
+
 def get_fine_tuning_parameters(model, ft_begin_index):
     if ft_begin_index == 0:
         return model.parameters()
@@ -154,17 +156,20 @@ def get_fine_tuning_parameters(model, ft_begin_index):
 
     return parameters
 
+
 def resnet50(**kwargs):
     """Constructs a ResNet-50 model.
     """
     model = ResNeXt(ResNeXtBottleneck, [3, 4, 6, 3], **kwargs)
     return model
 
+
 def resnet101(**kwargs):
     """Constructs a ResNet-101 model.
     """
     model = ResNeXt(ResNeXtBottleneck, [3, 4, 23, 3], **kwargs)
     return model
+
 
 def resnet152(**kwargs):
     """Constructs a ResNet-101 model.

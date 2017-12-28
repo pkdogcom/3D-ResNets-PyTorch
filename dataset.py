@@ -5,9 +5,9 @@ from datasets.hmdb51 import HMDB51
 
 
 def get_training_set(opt, spatial_transform, temporal_transform, target_transform):
-    assert opt.dataset in ['kinetics', 'activitynet', 'ucf101', 'hmdb51']
+    assert opt.dataset in ['kinetics', 'mini-kinetics', 'activitynet', 'ucf101', 'hmdb51']
 
-    if opt.dataset == 'kinetics':
+    if opt.dataset in ['kinetics', 'mini-kinetics']:
         training_data = Kinetics(opt.video_path, opt.annotation_path, 'training',
                                  spatial_transform=spatial_transform,
                                  temporal_transform=temporal_transform,
@@ -32,9 +32,9 @@ def get_training_set(opt, spatial_transform, temporal_transform, target_transfor
 
 
 def get_validation_set(opt, spatial_transform, temporal_transform, target_transform):
-    assert opt.dataset in ['kinetics', 'activitynet', 'ucf101', 'hmdb51']
+    assert opt.dataset in ['kinetics', 'mini-kinetics', 'activitynet', 'ucf101', 'hmdb51']
 
-    if opt.dataset == 'kinetics':
+    if opt.dataset in ['kinetics', 'mini-kinetics']:
         validation_data = Kinetics(opt.video_path, opt.annotation_path, 'validation', opt.n_val_samples,
                                    spatial_transform, temporal_transform, target_transform,
                                    sample_duration=opt.sample_duration)
