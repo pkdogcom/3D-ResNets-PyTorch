@@ -10,15 +10,62 @@ __all__ = ['ResNeXt', 'resnet50', 'resnet101']
 
 def conv3x3x3(in_planes, out_planes, stride=1):
     # 3x3x3 convolution with padding
-    return nn.Conv3d(in_planes, out_planes, kernel_size=3,
-                     stride=stride, padding=1, bias=False)
+    return nn.Conv3d(
+        in_planes,
+        out_planes,
+        kernel_size=3,
+        stride=stride,
+        padding=1,
+        bias=False)
+
+
+def same_padding(kernel_size):
+    if isinstance(kernel_size, int):
+        return int((kernel_size - 1) / 2)
+    elif isinstance(kernel_size, tuple):
+        return tuple(int((i - 1) / 2) for i in kernel_size)
+    else:
+        raise Exception('Kernel_size has to be either integer or tuple of integers')
+
+
+def conv3d(in_planes, out_planes, kernel_size, stride=1, groups=1, separable=False):
+    assert isinstance(kernel_size, int)
+    if isinstance(stride, int):
+        stride = (stride, stride, stride)
+
+    if separable and kernel_size != 1:
+        spatial_kernel = (1, kernel_size, kernel_size)
+        spatial_stride = (1, stride[1], stride[2])
+        temporal_kernel = (kernel_size, 1, 1)
+        temporal_stride = (stride[0], 1, 1)
+        return nn.Sequential(
+            nn.Conv3d(in_planes, in_planes,
+                      kernel_size=spatial_kernel,
+                      stride=spatial_stride,
+                      padding=same_padding(spatial_kernel),
+                      groups=groups,
+                      bias=False),
+            nn.Conv3d(in_planes, out_planes,
+                      kernel_size=temporal_kernel,
+                      stride=temporal_stride,
+                      padding=same_padding(temporal_kernel),
+                      groups=groups,
+                      bias=False)
+        )
+    else:
+        return nn.Conv3d(in_planes, out_planes,
+                         kernel_size=kernel_size,
+                         stride=stride,
+                         padding=same_padding(kernel_size),
+                         groups=groups,
+                         bias=False)
 
 
 def downsample_basic_block(x, planes, stride):
     out = F.avg_pool3d(x, kernel_size=1, stride=stride)
-    zero_pads = torch.Tensor(out.size(0), planes - out.size(1),
-                             out.size(2), out.size(3),
-                             out.size(4)).zero_()
+    zero_pads = torch.Tensor(
+        out.size(0), planes - out.size(1), out.size(2), out.size(3),
+        out.size(4)).zero_()
     if isinstance(out.data, torch.cuda.FloatTensor):
         zero_pads = zero_pads.cuda()
 
@@ -30,15 +77,30 @@ def downsample_basic_block(x, planes, stride):
 class ResNeXtBottleneck(nn.Module):
     expansion = 2
 
-    def __init__(self, inplanes, planes, cardinality, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, cardinality, stride=1,
+                 downsample=None, separable=False):
         super(ResNeXtBottleneck, self).__init__()
         mid_planes = cardinality * int(planes / 32)
-        self.conv1 = nn.Conv3d(inplanes, mid_planes, kernel_size=1, bias=False)
+        # self.conv1 = nn.Conv3d(inplanes, mid_planes, kernel_size=1, bias=False)
+        self.conv1 = conv3d(inplanes, mid_planes, kernel_size=1, separable=separable)
         self.bn1 = nn.BatchNorm3d(mid_planes)
-        self.conv2 = nn.Conv3d(mid_planes, mid_planes, kernel_size=3, stride=stride,
-                               padding=1, groups=cardinality, bias=False)
+        # self.conv2 = nn.Conv3d(
+        #     mid_planes,
+        #     mid_planes,
+        #     kernel_size=3,
+        #     stride=stride,
+        #     padding=1,
+        #     groups=cardinality,
+        #     bias=False)
+        self.conv2 = conv3d(mid_planes, mid_planes,
+                            kernel_size=3,
+                            stride=stride,
+                            groups=cardinality,
+                            separable=separable)
         self.bn2 = nn.BatchNorm3d(mid_planes)
-        self.conv3 = nn.Conv3d(mid_planes, planes * self.expansion, kernel_size=1, bias=False)
+        # self.conv3 = nn.Conv3d(
+        #     mid_planes, planes * self.expansion, kernel_size=1, bias=False)
+        self.conv3 = conv3d(mid_planes, planes * self.expansion, kernel_size=1, separable=separable)
         self.bn3 = nn.BatchNorm3d(planes * self.expansion)
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
@@ -69,51 +131,89 @@ class ResNeXtBottleneck(nn.Module):
 
 class ResNeXt(nn.Module):
 
-    def __init__(self, block, layers, sample_size, sample_duration, shortcut_type='B', cardinality=32, num_classes=400,
-                 separable_conv=False):
+    def __init__(self,
+                 block,
+                 layers,
+                 sample_size,
+                 sample_duration,
+                 shortcut_type='B',
+                 cardinality=32,
+                 num_classes=400,
+                 separable=False):
         self.inplanes = 64
         super(ResNeXt, self).__init__()
-        self.conv1 = nn.Conv3d(3, 64, kernel_size=7, stride=(1, 2, 2),
-                               padding=(3, 3, 3), bias=False)
+        # self.conv1 = nn.Conv3d(
+        #     3,
+        #     64,
+        #     kernel_size=7,
+        #     stride=(1, 2, 2),
+        #     padding=(3, 3, 3),
+        #     bias=False)
+        self.conv1 = conv3d(3, 64,
+                            kernel_size=7,
+                            stride=(1, 2, 2),
+                            separable=separable)
         self.bn1 = nn.BatchNorm3d(64)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=2, padding=1)
-        self.layer1 = self._make_layer(block, 128, layers[0], shortcut_type, cardinality)
-        self.layer2 = self._make_layer(block, 256, layers[1], shortcut_type, cardinality, stride=2)
-        self.layer3 = self._make_layer(block, 512, layers[2], shortcut_type, cardinality, stride=2)
-        self.layer4 = self._make_layer(block, 1024, layers[3], shortcut_type, cardinality, stride=2)
-        last_duration = math.ceil(sample_duration / 16)
-        last_size = math.ceil(sample_size / 32)
-        self.avgpool = nn.AvgPool3d((last_duration, last_size, last_size), stride=1)
+        self.layer1 = self._make_layer(block, 128, layers[0], shortcut_type,
+                                       cardinality, separable=separable)
+        self.layer2 = self._make_layer(
+            block, 256, layers[1], shortcut_type, cardinality, stride=2, separable=separable)
+        self.layer3 = self._make_layer(
+            block, 512, layers[2], shortcut_type, cardinality, stride=2, separable=separable)
+        self.layer4 = self._make_layer(
+            block, 1024, layers[3], shortcut_type, cardinality, stride=2, separable=separable)
+        last_duration = int(math.ceil(sample_duration / 16.0))
+        last_size = int(math.ceil(sample_size / 32.0))
+        self.avgpool = nn.AvgPool3d(
+            (last_duration, last_size, last_size), stride=1)
         self.fc = nn.Linear(cardinality * 32 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, nn.Conv3d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
+                # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                # m.weight.data.normal_(0, math.sqrt(2. / n))
+                nn.init.kaiming_normal(m.weight, mode='fan_out')
             elif isinstance(m, nn.BatchNorm3d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-    def _make_layer(self, block, planes, blocks, shortcut_type, cardinality, stride=1):
+    def _make_layer(self,
+                    block,
+                    planes,
+                    blocks,
+                    shortcut_type,
+                    cardinality,
+                    stride=1,
+                    separable=False):
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             if shortcut_type == 'A':
-                downsample = partial(downsample_basic_block,
-                                     planes=planes * block.expansion,
-                                     stride=stride)
+                downsample = partial(
+                    downsample_basic_block,
+                    planes=planes * block.expansion,
+                    stride=stride)
             else:
                 downsample = nn.Sequential(
-                    nn.Conv3d(self.inplanes, planes * block.expansion,
-                              kernel_size=1, stride=stride, bias=False),
-                    nn.BatchNorm3d(planes * block.expansion)
-                )
+                    # nn.Conv3d(
+                    #     self.inplanes,
+                    #     planes * block.expansion,
+                    #     kernel_size=1,
+                    #     stride=stride,
+                    #     bias=False), nn.BatchNorm3d(planes * block.expansion))
+                    conv3d(self.inplanes, planes * block.expansion,
+                           kernel_size=1,
+                           stride=stride,
+                           separable=separable),
+                    nn.BatchNorm3d(planes * block.expansion))
 
         layers = []
-        layers.append(block(self.inplanes, planes, cardinality, stride, downsample))
+        layers.append(
+            block(self.inplanes, planes, cardinality, stride, downsample, separable=separable))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes, cardinality))
+            layers.append(block(self.inplanes, planes, cardinality, separable=separable))
 
         return nn.Sequential(*layers)
 
@@ -127,12 +227,10 @@ class ResNeXt(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-
         x = self.avgpool(x)
-
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
 
+        x = self.fc(x)
         return x
 
 

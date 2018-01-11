@@ -14,6 +14,7 @@ from opts import parse_opts
 from spatial_transforms import (Compose, Normalize, Scale, CenterCrop, CornerCrop,
                                 MultiScaleCornerCrop, MultiScaleRandomCrop,
                                 RandomHorizontalFlip, ToTensor)
+# from torchvision.transforms import (Normalize, RandomHorizontalFlip)
 from target_transforms import ClassLabel, VideoID
 from temporal_transforms import LoopPadding, TemporalRandomCrop
 from train import train_epoch
@@ -26,6 +27,7 @@ if __name__ == '__main__':
         opt.video_path = os.path.join(opt.root_path, opt.video_path)
         opt.annotation_path = os.path.join(opt.root_path, opt.annotation_path)
         opt.result_path = os.path.join(opt.root_path, opt.result_path)
+        opt.n_frames_path = os.path.join(opt.root_path, opt.n_frames_path)
         if opt.resume_path:
             opt.resume_path = os.path.join(opt.root_path, opt.resume_path)
         if opt.pretrain_path:

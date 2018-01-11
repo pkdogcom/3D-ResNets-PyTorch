@@ -1,4 +1,6 @@
 import csv
+import glob
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -44,6 +46,24 @@ def load_value_file(file_path):
         value = float(input_file.read().rstrip('\n\r'))
 
     return value
+
+
+def load_n_frames(n_frames_path):
+    n_frames_map = {}
+    with open(n_frames_path, 'r') as f:
+        for line in f.readlines():
+            video_name, n_frames = line.rsplit(' ', 1)
+            n_frames_map[video_name] = int(n_frames)
+    print('Loaded {} n_frames'.format(len(n_frames_map)))
+    return n_frames_map
+
+
+def search_dir(root_path, depth=2):
+    if not root_path.endswith('/'):
+        root_path = root_path + '/'
+    search_pattern = (root_path + '*/' * depth)[:-1] # Remove the last '/'
+    return [path[len(root_path):] for path in glob.glob(search_pattern)]
+
 
 def calculate_accuracy(outputs, targets):
     batch_size = targets.size(0)

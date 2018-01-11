@@ -48,13 +48,13 @@ def generate_model(opt):
 
         if opt.model_depth == 50:
             model = resnext.resnet50(num_classes=opt.n_classes, shortcut_type=opt.resnet_shortcut, cardinality=opt.resnext_cardinality,
-                                     sample_size=opt.sample_size, sample_duration=opt.sample_duration)
+                                     sample_size=opt.sample_size, sample_duration=opt.sample_duration, separable=opt.separable_conv)
         elif opt.model_depth == 101:
             model = resnext.resnet101(num_classes=opt.n_classes, shortcut_type=opt.resnet_shortcut, cardinality=opt.resnext_cardinality,
-                                      sample_size=opt.sample_size, sample_duration=opt.sample_duration)
+                                      sample_size=opt.sample_size, sample_duration=opt.sample_duration, separable=opt.separable_conv)
         elif opt.model_depth == 152:
             model = resnext.resnet152(num_classes=opt.n_classes, shortcut_type=opt.resnet_shortcut, cardinality=opt.resnext_cardinality,
-                                      sample_size=opt.sample_size, sample_duration=opt.sample_duration)
+                                      sample_size=opt.sample_size, sample_duration=opt.sample_duration, separable=opt.separable_conv)
     elif opt.model == 'preresnet':
         assert opt.model_depth in [18, 34, 50, 101, 152, 200]
 

@@ -7,7 +7,7 @@ import functools
 import json
 import copy
 
-from utils import load_value_file
+from utils import load_n_frames, search_dir
 
 
 def pil_loader(path):
@@ -38,10 +38,11 @@ def video_loader(video_dir_path, frame_indices, image_loader):
     video = []
     for i in frame_indices:
         image_path = os.path.join(video_dir_path, 'image_{:05d}.jpg'.format(i))
-        if os.path.exists(image_path):
-            video.append(image_loader(image_path))
-        else:
-            return video
+        # if os.path.exists(image_path):
+        #     video.append(image_loader(image_path))
+        # else:
+        #     return video
+        video.append(image_loader(image_path))
 
     return video
 
@@ -82,7 +83,7 @@ def get_video_names_and_annotations(data, subset):
     return video_names, annotations
 
 
-def make_dataset(root_path, annotation_path, subset,
+def make_dataset(root_path, annotation_path, n_frames_map, subset,
                  n_samples_for_each_video, sample_duration):
     data = load_annotation_data(annotation_path)
     video_names, annotations = get_video_names_and_annotations(data, subset)
@@ -90,19 +91,24 @@ def make_dataset(root_path, annotation_path, subset,
     idx_to_class = {}
     for name, label in class_to_idx.items():
         idx_to_class[label] = name
+    existed_video = set(search_dir(root_path, depth=2))
 
     dataset = []
     for i in range(len(video_names)):
         if i % 1000 == 0:
             print('dataset loading [{}/{}]'.format(i, len(video_names)))
 
-        video_path = os.path.join(root_path, video_names[i])
-        if not os.path.exists(video_path):
+        if video_names[i] not in existed_video:
             continue
+        video_path = os.path.join(root_path, video_names[i])
+        # if not os.path.exists(video_path):
+        #     continue
 
-        n_frames_file_path = os.path.join(video_path, 'n_frames')
-        n_frames = int(load_value_file(n_frames_file_path))
+        n_frames = n_frames_map[video_names[i]]
+        if n_frames is None:
+            print('Error for video {}'.format(video_names[i]))
         if n_frames <= 0:
+            # print 'No frames found in video {}'.format(video_names[i])
             continue
 
         begin_t = 1
@@ -132,6 +138,8 @@ def make_dataset(root_path, annotation_path, subset,
                                                               j + sample_duration)))
                 dataset.append(sample_j)
 
+    print('Loaded {} video samples for {} subset'.format(len(dataset), subset))
+
     return dataset, idx_to_class
 
 
@@ -152,10 +160,11 @@ class Kinetics(data.Dataset):
         imgs (list): List of (image path, class_index) tuples
     """
 
-    def __init__(self, root_path, annotation_path, subset, n_samples_for_each_video=1,
+    def __init__(self, root_path, annotation_path, n_frames_path, subset, n_samples_for_each_video=1,
                  spatial_transform=None, temporal_transform=None, target_transform=None,
                  sample_duration=16, get_loader=get_default_video_loader):
-        self.data, self.class_names = make_dataset(root_path, annotation_path, subset,
+        self.n_frames_map = load_n_frames(n_frames_path)
+        self.data, self.class_names = make_dataset(root_path, annotation_path, self.n_frames_map, subset,
                                                    n_samples_for_each_video, sample_duration)
 
         self.spatial_transform = spatial_transform

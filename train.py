@@ -24,17 +24,21 @@ def train_epoch(epoch, data_loader, model, criterion, optimizer, opt,
         data_time.update(time.time() - end_time)
 
         batch_size = inputs.size(0)
-        loss_sum, acc_sum = 0, 0
+        if not opt.no_cuda:
+            targets = targets.cuda(async=True)
 
+        loss_sum, acc_sum = 0, 0
         optimizer.zero_grad()
 
         # Split batch into multiple splits and calculate gradients separately and accumulate
-        input_splits = [x for x in np.array_split(inputs, opt.batch_split) if x.size > 0]
-        target_splits = [x for x in np.array_split(targets, opt.batch_split) if x.size > 0]
+        # torch.chunk()
+        # input_splits = [x for x in np.array_split(inputs, opt.batch_split) if x.size > 0]
+        # target_splits = [x for x in np.array_split(targets, opt.batch_split) if x.size > 0]
+        input_splits = torch.chunk(inputs, opt.batch_split)
+        target_splits = torch.chunk(targets, opt.batch_split)
         for input_split, target_split in zip(input_splits, target_splits):
             split_size = input_split.size(0)
-            if not opt.no_cuda:
-                targets = targets.cuda(async=True)
+
             input_split = Variable(input_split)
             target_split = Variable(target_split)
             outputs = model(input_split)

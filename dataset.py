@@ -8,7 +8,7 @@ def get_training_set(opt, spatial_transform, temporal_transform, target_transfor
     assert opt.dataset in ['kinetics', 'mini-kinetics', 'activitynet', 'ucf101', 'hmdb51']
 
     if opt.dataset in ['kinetics', 'mini-kinetics']:
-        training_data = Kinetics(opt.video_path, opt.annotation_path, 'training',
+        training_data = Kinetics(opt.video_path, opt.annotation_path, opt.n_frames_path, 'training',
                                  spatial_transform=spatial_transform,
                                  temporal_transform=temporal_transform,
                                  target_transform=target_transform)
@@ -35,7 +35,7 @@ def get_validation_set(opt, spatial_transform, temporal_transform, target_transf
     assert opt.dataset in ['kinetics', 'mini-kinetics', 'activitynet', 'ucf101', 'hmdb51']
 
     if opt.dataset in ['kinetics', 'mini-kinetics']:
-        validation_data = Kinetics(opt.video_path, opt.annotation_path, 'validation', opt.n_val_samples,
+        validation_data = Kinetics(opt.video_path, opt.annotation_path, opt.n_frames_path, 'validation', opt.n_val_samples,
                                    spatial_transform, temporal_transform, target_transform,
                                    sample_duration=opt.sample_duration)
     elif opt.dataset == 'activitynet':
@@ -62,7 +62,7 @@ def get_test_set(opt, spatial_transform, temporal_transform, target_transform):
     elif opt.test_subset == 'test':
         subset = 'testing'
     if opt.dataset == 'kinetics':
-        test_data = Kinetics(opt.video_path, opt.annotation_path, subset, 0,
+        test_data = Kinetics(opt.video_path, opt.annotation_path, opt.n_frames_path, subset, 0,
                              spatial_transform, temporal_transform, target_transform,
                              sample_duration=opt.sample_duration, sample_stride=opt.sample_stride)
     elif opt.dataset == 'activitynet':
